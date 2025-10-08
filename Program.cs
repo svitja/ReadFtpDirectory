@@ -97,14 +97,14 @@ namespace ReadFtpDirectory
                     tasks.Add(Task.Run(() => MonitorFtp(ftp.Url, ftp.User, ftp.Pass, ftp.TimeOut)));
             }
 
-            Console.WriteLine("Моніторинг FTP-серверів запущено...");
+            Console.WriteLine("Монiторинг FTP-серверiв запущено...");
             Task.WaitAll(tasks.ToArray());
         }
         static void MonitorFtp(string ftpUrl, string username, string password, int timeout)
         {
             HashSet<string> knownFiles = new HashSet<string>();
 
-            Console.WriteLine($"▶ Старт моніторингу: {ftpUrl}");
+            Console.WriteLine($"   Старт монiторингу: {ftpUrl}");
 
             while (true)
             {
