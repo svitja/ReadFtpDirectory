@@ -74,9 +74,24 @@ namespace ReadFtpDirectory
                     var newFiles = GetNewFiles(ftpUrl, username, password, knownFiles);
                     foreach (var file in newFiles)
                     {
-                        DownloadFtpFile(ftpUrl + file, localDirectory + "\\" + file, username, password);
                         Console.WriteLine($"[{ftpUrl}] Новий файл: {localDirectory}\\{file}");
-                        // Тут можна викликати метод для завантаження або обробки файлу
+
+                        DownloadFtpFile(ftpUrl + file, localDirectory + "\\" + file, username, password);
+
+                        long remoteFileSize = GetFileSize(ftpUrl + file, username, password);
+                        long localFileSize = new FileInfo(localDirectory + "\\" + file).Length;
+
+                        if (localFileSize == remoteFileSize)
+                        {
+                            Console.WriteLine($"✅ Файл {file} завантажено успішно ({localFileSize} байт).");
+
+                            // === 4. Видаляємо з FTP ===
+                            deleteFtpFile(ftpUrl, username, password, file);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️  Помилка: файл {file} завантажено некоректно (розмір не співпадає).");
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -85,6 +100,17 @@ namespace ReadFtpDirectory
                 }
 
                 Thread.Sleep(timeout);
+            }
+        }
+
+        private static void deleteFtpFile(string ftpUrl, string username, string password, string file)
+        {
+            FtpWebRequest deleteRequest = (FtpWebRequest)WebRequest.Create(ftpUrl);
+            deleteRequest.Method = WebRequestMethods.Ftp.DeleteFile;
+            deleteRequest.Credentials = new NetworkCredential(username, password);
+            using (FtpWebResponse deleteResponse = (FtpWebResponse)deleteRequest.GetResponse())
+            {
+                Console.WriteLine($"🗑️  Видалено з FTP: {file}");
             }
         }
 
@@ -113,11 +139,10 @@ namespace ReadFtpDirectory
             return newFiles;
         }
 
-        public static void DownloadFtpFile(string ftpUrl, string localPath, string username, string password)
+        static void DownloadFtpFile(string ftpUrl, string localPath, string username, string password)
         {
             try
             {
-                // Create FtpWebRequest object
                 FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpUrl);
                 request.Method = WebRequestMethods.Ftp.DownloadFile;
 
@@ -146,6 +171,8 @@ namespace ReadFtpDirectory
                     }
                     Console.WriteLine($"Download Complete. Status: {response.StatusDescription}");
                 }
+
+
             }
             catch (WebException ex)
             {
@@ -161,6 +188,18 @@ namespace ReadFtpDirectory
             catch (Exception ex)
             {
                 Console.WriteLine($"General Error: {ex.Message}");
+            }
+        }
+
+        static long GetFileSize(string ftpUrl, string user, string pass)
+        {
+            FtpWebRequest sizeRequest = (FtpWebRequest)WebRequest.Create(ftpUrl);
+            sizeRequest.Method = WebRequestMethods.Ftp.GetFileSize;
+            sizeRequest.Credentials = new NetworkCredential(user, pass);
+
+            using (FtpWebResponse response = (FtpWebResponse)sizeRequest.GetResponse())
+            {
+                return response.ContentLength;
             }
         }
     }
